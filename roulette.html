@@ -69,7 +69,7 @@
             letter-spacing: 0.5px;
         }
 
-        /* КОЛЕСО РУЛЕТКИ */
+        /* КОЛЕСО РУЛЕТКИ (Оновлені стилі під картинку) */
         .wheel-area {
             position: relative;
             display: flex;
@@ -78,17 +78,14 @@
         }
 
         .roulette-wheel {
-            width: 320px;
-            height: 320px;
+            width: 330px;
+            height: 330px;
             border-radius: 50%;
-            border: 12px solid #4a2e1b; /* Дерев'яний борт */
+            border: 10px solid #4a2e1b; /* Преміальний дерев'яний борт */
             box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-            background: repeating-conic-gradient(
-                #e74c3c 0deg 9.7deg,  /* Червоний */
-                #2c3e50 9.7deg 19.4deg /* Чорний */
-            );
             transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1);
             position: relative;
+            object-fit: cover;
         }
 
         /* Маркер випавшого числа (стрілочка зверху) */
@@ -105,18 +102,19 @@
 
         .wheel-center {
             position: absolute;
-            width: 80px;
-            height: 80px;
+            width: 70px;
+            height: 70px;
             background: radial-gradient(circle, #2c3e50 0%, #1a252f 100%);
             border-radius: 50%;
-            border: 4px solid #ff9f00;
+            border: 3px solid #ff9f00;
             display: flex;
             justify-content: center;
             align-items: center;
             font-weight: bold;
-            font-size: 20px;
+            font-size: 22px;
             color: #fff;
             box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            z-index: 5;
         }
 
         /* ПАНЕЛЬ СТАВОК */
@@ -208,7 +206,7 @@
 
         <div class="wheel-area">
             <div class="wheel-pointer"></div>
-            <div class="roulette-wheel" id="wheel"></div>
+            <img src="https://i.ibb.co/6NGp6Xy/roulette-wheel.png" class="roulette-wheel" id="wheel" alt="Roulette Wheel">
             <div class="wheel-center" id="wheel-center-val">--</div>
         </div>
 
@@ -242,139 +240,139 @@
     <script src="app.js"></script>
     <script>
         // Зчитуємо елементи інтерфейсу рулетки
-const nameDisplay = document.getElementById('roulette-name');
-const balanceDisplay = document.getElementById('roulette-balance');
-const creditDisplay = document.getElementById('roulette-credit');
-const historyLogs = document.getElementById('history-logs');
-const wheel = document.getElementById('wheel');
-const wheelCenterVal = document.getElementById('wheel-center-val');
+        const nameDisplay = document.getElementById('roulette-name');
+        const balanceDisplay = document.getElementById('roulette-balance');
+        const creditDisplay = document.getElementById('roulette-credit');
+        const historyLogs = document.getElementById('history-logs');
+        const wheel = document.getElementById('wheel');
+        const wheelCenterVal = document.getElementById('wheel-center-val');
 
-const betSlider = document.getElementById('roulette-bet-slider');
-const betBox = document.getElementById('roulette-bet-box');
+        const betSlider = document.getElementById('roulette-bet-slider');
+        const betBox = document.getElementById('roulette-bet-box');
 
-// Послідовність чисел на класичному американському колесі (38 секторів)
-const americanWheelNumbers = [
-    "0", "28", "9", "26", "30", "11", "7", "20", "32", "17", "5", "22", "34", "15", "3", "24", "36", "13", "1", "00", 
-    "27", "10", "25", "29", "12", "8", "19", "31", "18", "6", "21", "33", "16", "4", "23", "35", "14", "2"
-];
+        // Послідовність чисел на класичному американському колесі (38 секторів)
+        const americanWheelNumbers = [
+            "0", "28", "9", "26", "30", "11", "7", "20", "32", "17", "5", "22", "34", "15", "3", "24", "36", "13", "1", "00", 
+            "27", "10", "25", "29", "12", "8", "19", "31", "18", "6", "21", "33", "16", "4", "23", "35", "14", "2"
+        ];
 
-// Масив червоних чисел
-const redNumbers = ["1", "3", "5", "7", "9", "12", "14", "16", "18", "19", "21", "23", "25", "27", "30", "32", "34", "36"];
+        // Масив червоних чисел
+        const redNumbers = ["1", "3", "5", "7", "9", "12", "14", "16", "18", "19", "21", "23", "25", "27", "30", "32", "34", "36"];
 
-let isSpinning = false;
-let currentRotation = 0;
+        let isSpinning = false;
+        let currentRotation = 0;
 
-// Оновлення значень гаманця при завантаженні сторінки
-function updateRouletteUI() {
-    nameDisplay.innerText = wallet.getUsername();
-    balanceDisplay.innerText = wallet.getBalance() + "$";
-    creditDisplay.innerText = wallet.getCredit() + "$";
-}
-
-// Оновлення повзунка ставки в реальному часі
-betSlider.addEventListener('input', () => {
-    betBox.innerText = betSlider.value + "$";
-});
-
-// Додавання подій на кнопки швидких ставок
-document.getElementById('bet-red').addEventListener('click', () => handleBet('red'));
-document.getElementById('bet-black').addEventListener('click', () => handleBet('black'));
-document.getElementById('bet-even').addEventListener('click', () => handleBet('even'));
-document.getElementById('bet-odd').addEventListener('click', () => handleBet('odd'));
-
-// Ставка на точне число
-document.getElementById('bet-number').addEventListener('click', () => {
-    const numInput = document.getElementById('specific-number').value.trim();
-    if (numInput === "") {
-        alert("Введіть число від 0 до 36 або 00!");
-        return;
-    }
-    if (!americanWheelNumbers.includes(numInput)) {
-        alert("Неіснуючий сектор! Можна ставити на 0, 00 або числа від 1 до 36.");
-        return;
-    }
-    handleBet('number', numInput);
-});
-
-// Функція обробки ставки та запуску колеса
-function handleBet(betType, specificNum = null) {
-    if (isSpinning) return;
-
-    const betAmount = parseInt(betSlider.value);
-    const currentBalance = wallet.getBalance();
-
-    if (currentBalance < betAmount) {
-        alert("У вас недостатньо грошей у касі для цієї ставки! Візьміть кредит у Хабі.");
-        return;
-    }
-
-    // Знімаємо гроші за ставку
-    wallet.updateBalance(-betAmount);
-    updateRouletteUI();
-    isSpinning = true;
-    wheelCenterVal.innerText = "⏳";
-
-    // Визначаємо випадковий переможний сектор
-    const randomIndex = Math.floor(Math.random() * americanWheelNumbers.length);
-    const winningNumber = americanWheelNumbers[randomIndex];
-
-    // Розрахунок кута обертання колеса
-    const sectorDegrees = 360 / 38; // ~9.47 градусів на один сектор
-    const targetSectorAngle = randomIndex * sectorDegrees;
-    
-    // Робимо мінімум 5 повних обертів (1800 градусів) плюс кут сектору
-    // Мінус ставимо, щоб колесо крутилося за годинниковою стрілкою
-    const extraSpins = 1800 + (360 - targetSectorAngle);
-    currentRotation += extraSpins;
-
-    wheel.style.transform = `rotate(${currentRotation}deg)`;
-
-    // Чекаємо завершення анімації (4 секунди, як у CSS)
-    setTimeout(() => {
-        isSpinning = false;
-        wheelCenterVal.innerText = winningNumber;
-
-        // Визначаємо колір випавшого числа
-        let numberColor = "Чорне";
-        if (winningNumber === "0" || winningNumber === "00") {
-            numberColor = "Зелене";
-        } else if (redNumbers.includes(winningNumber)) {
-            numberColor = "Червоне";
+        // Оновлення значень гаманця при завантаженні сторінки
+        function updateRouletteUI() {
+            nameDisplay.innerText = wallet.getUsername();
+            balanceDisplay.innerText = wallet.getBalance() + "$";
+            creditDisplay.innerText = wallet.getCredit() + "$";
         }
 
-        // Перевіряємо, чи виграв гравець
-        let isWin = false;
-        let payoutFactor = 0;
+        // Оновлення повзунка ставки в реальному часі
+        betSlider.addEventListener('input', () => {
+            betBox.innerText = betSlider.value + "$";
+        });
 
-        if (betType === 'red' && numberColor === 'Червоне') { isWin = true; payoutFactor = 2; }
-        else if (betType === 'black' && numberColor === 'Чорне') { isWin = true; payoutFactor = 2; }
-        else if (betType === 'even' && winningNumber !== "0" && winningNumber !== "00" && parseInt(winningNumber) % 2 === 0) { isWin = true; payoutFactor = 2; }
-        else if (betType === 'odd' && winningNumber !== "0" && winningNumber !== "00" && parseInt(winningNumber) % 2 !== 0) { isWin = true; payoutFactor = 2; }
-        else if (betType === 'number' && winningNumber === specificNum) { isWin = true; payoutFactor = 36; }
+        // Додавання подій на кнопки швидких ставок
+        document.getElementById('bet-red').addEventListener('click', () => handleBet('red'));
+        document.getElementById('bet-black').addEventListener('click', () => handleBet('black'));
+        document.getElementById('bet-even').addEventListener('click', () => handleBet('even'));
+        document.getElementById('bet-odd').addEventListener('click', () => handleBet('odd'));
 
-        let logText = "";
-        if (isWin) {
-            const winAmount = betAmount * payoutFactor;
-            wallet.updateBalance(winAmount);
-            logText = `<div style="color: #2ecc71; margin-bottom: 5px;">• Випало: <strong>${winningNumber} (${numberColor})</strong>. Ви ВИГРАЛИ ${winAmount}$!</div>`;
-        } else {
-            logText = `<div style="color: #e74c3c; margin-bottom: 5px;">• Випало: <strong>${winningNumber} (${numberColor})</strong>. Ви програли ${betAmount}$.</div>`;
+        // Ставка на точне число
+        document.getElementById('bet-number').addEventListener('click', () => {
+            const numInput = document.getElementById('specific-number').value.trim();
+            if (numInput === "") {
+                alert("Введіть число від 0 до 36 або 00!");
+                return;
+            }
+            if (!americanWheelNumbers.includes(numInput)) {
+                alert("Неіснуючий сектор! Можна ставити на 0, 00 або числа від 1 до 36.");
+                return;
+            }
+            handleBet('number', numInput);
+        });
+
+        // Функція обробки ставки та запуску колеса
+        function handleBet(betType, specificNum = null) {
+            if (isSpinning) return;
+
+            const betAmount = parseInt(betSlider.value);
+            const currentBalance = wallet.getBalance();
+
+            if (currentBalance < betAmount) {
+                alert("У вас недостатньо грошей у касі для цієї ставки! Візьміть кредит у Хабі.");
+                return;
+            }
+
+            // Знімаємо гроші за ставку
+            wallet.updateBalance(-betAmount);
+            updateRouletteUI();
+            isSpinning = true;
+            wheelCenterVal.innerText = "⏳";
+
+            // Визначаємо випадковий переможний сектор
+            const randomIndex = Math.floor(Math.random() * americanWheelNumbers.length);
+            const winningNumber = americanWheelNumbers[randomIndex];
+
+            // Розрахунок кута обертання колеса
+            const sectorDegrees = 360 / 38; // ~9.47 градусів на один сектор
+            const targetSectorAngle = randomIndex * sectorDegrees;
+            
+            // Робимо мінімум 5 повних обертів (1800 градусів) плюс кут сектору
+            // Мінус ставимо, щоб колесо крутилося за годинниковою стрілкою
+            const extraSpins = 1800 + (360 - targetSectorAngle);
+            currentRotation += extraSpins;
+
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            // Чекаємо завершення анімації (4 секунди, як у CSS)
+            setTimeout(() => {
+                isSpinning = false;
+                wheelCenterVal.innerText = winningNumber;
+
+                // Визначаємо колір випавшого числа
+                let numberColor = "Чорне";
+                if (winningNumber === "0" || winningNumber === "00") {
+                    numberColor = "Зелене";
+                } else if (redNumbers.includes(winningNumber)) {
+                    numberColor = "Червоне";
+                }
+
+                // Перевіряємо, чи виграв гравець
+                let isWin = false;
+                let payoutFactor = 0;
+
+                if (betType === 'red' && numberColor === 'Червоне') { isWin = true; payoutFactor = 2; }
+                else if (betType === 'black' && numberColor === 'Чорне') { isWin = true; payoutFactor = 2; }
+                else if (betType === 'even' && winningNumber !== "0" && winningNumber !== "00" && parseInt(winningNumber) % 2 === 0) { isWin = true; payoutFactor = 2; }
+                else if (betType === 'odd' && winningNumber !== "0" && winningNumber !== "00" && parseInt(winningNumber) % 2 !== 0) { isWin = true; payoutFactor = 2; }
+                else if (betType === 'number' && winningNumber === specificNum) { isWin = true; payoutFactor = 36; }
+
+                let logText = "";
+                if (isWin) {
+                    const winAmount = betAmount * payoutFactor;
+                    wallet.updateBalance(winAmount);
+                    logText = `<div style="color: #2ecc71; margin-bottom: 5px;">• Випало: <strong>${winningNumber} (${numberColor})</strong>. Ви ВИГРАЛИ ${winAmount}$!</div>`;
+                } else {
+                    logText = `<div style="color: #e74c3c; margin-bottom: 5px;">• Випало: <strong>${winningNumber} (${numberColor})</strong>. Ви програли ${betAmount}$.</div>`;
+                }
+
+                // Додаємо запис в історію випадінь
+                historyLogs.innerHTML = logText + historyLogs.innerHTML;
+                
+                // Очищаємо інпут точного числа
+                document.getElementById('specific-number').value = "";
+                
+                // Оновлюємо касу на екрані
+                updateRouletteUI();
+
+            }, 4000);
         }
 
-        // Додаємо запис в історію випадінь
-        historyLogs.innerHTML = logText + historyLogs.innerHTML;
-        
-        // Очищаємо інпут точного числа
-        document.getElementById('specific-number').value = "";
-        
-        // Оновлюємо касу на екрані
-        updateRouletteUI();
-
-    }, 4000);
-}
-
-// Запускаємо ініціалізацію при завантаженні сторінки
-window.addEventListener('DOMContentLoaded', updateRouletteUI);
+        // Запускаємо ініціалізацію при завантаженні сторінки
+        window.addEventListener('DOMContentLoaded', updateRouletteUI);
     </script>
 </body>
 </html>
