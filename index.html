@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberChips Gaming Hub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="auth-screen" class="screen active">
+        <div class="modal-box">
+            <h2><span class="icon">💻</span> CYBERCHIPS GAMING HUB</h2>
+            <p class="subtitle">БУДЬ ЛАСКА, АВТОРИЗУЙТЕСЬ У СИСТЕМІ</p>
+            <hr>
+            <div class="input-group">
+                <label>НІКНЕЙМ ГРАВЦЯ</label>
+                <input type="text" id="username-input" placeholder="Введіть ваш нік...">
+            </div>
+            <button id="login-btn" class="main-btn">🔑 УВІЙТИ В СИСТЕМУ</button>
+        </div>
+    </div>
+
+    <div id="hub-screen" class="screen">
+        <div class="modal-box wide">
+            <h2><span class="icon">💻</span> CYBERCHIPS GAMING HUB</h2>
+            <p id="welcome-text" class="subtitle">ОБЕРІТЬ ГРУ ДЛЯ ПОЧАТКУ СЕСІЇ</p>
+            <hr>
+            
+            <div class="games-container">
+                <div class="game-card">
+                    <span class="game-icon">🃏</span>
+                    <h3>Texas Hold'em</h3>
+                    <p>Покер проти трьох унікальних ШІ-ботів із системою ставок та чатом.</p>
+                    <button onclick="location.href='poker.html'" class="play-btn poker-color">Грати зараз</button>
+                </div>
+
+                <div class="game-card">
+                    <span class="game-icon">🎰</span>
+                    <h3>Cyber Roulette</h3>
+                    <p>Американська рулетка з подвійним зеро (00), плавним обертанням та великими іксами.</p>
+                    <button onclick="location.href='roulette.html'" class="play-btn roulette-color">Грати зараз</button>
+                </div>
+            </div>
+
+            <div class="hub-footer">
+                <div class="balance-display">Каса: <span id="hub-balance">1000</span>$ | Борг: <span id="hub-credit">0</span>$</div>
+                <button id="open-bank-btn" class="bank-btn">🏦 Кредитний відділ</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bank-screen" class="screen">
+        <div class="modal-box">
+            <h2>🏦 КРЕДИТНИЙ ВІДДІЛ</h2>
+            <p class="subtitle">КЕРУВАННЯ ВІРТУАЛЬНИМ БАНКОМ</p>
+            <hr>
+            
+            <div class="bank-info">
+                <p>Твій баланс у касі: <strong id="bank-current-balance">1000</strong>$</p>
+                <p>Поточний борг: <strong id="bank-current-credit" class="text-danger">0</strong>$</p>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header">
+                    <span>Взяти кредит (макс. 1000$):</span>
+                    <span id="borrow-val" class="slider-val">0$</span>
+                </div>
+                <input type="range" id="borrow-slider" min="0" max="1000" value="0" class="long-slider">
+                <button id="confirm-borrow-btn" class="action-btn">Підтвердити кредит</button>
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-header">
+                    <span>Погасити кредит:</span>
+                    <span id="repay-val" class="slider-val">0$</span>
+                </div>
+                <input type="range" id="repay-slider" min="0" max="0" value="0" class="long-slider">
+                <button id="confirm-repay-btn" class="action-btn repay">Погасити борг</button>
+            </div>
+
+            <button id="back-to-hub-btn" class="back-btn">← Назад в Хаб</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Елементи екранів
+const authScreen = document.getElementById('auth-screen');
+const hubScreen = document.getElementById('hub-screen');
+const bankScreen = document.getElementById('bank-screen');
+
+// Кнопки та інпути
+const loginBtn = document.getElementById('login-btn');
+const usernameInput = document.getElementById('username-input');
+const openBankBtn = document.getElementById('open-bank-btn');
+const backToHubBtn = document.getElementById('back-to-hub-btn');
+
+// Повзунки та їхні значення
+const borrowSlider = document.getElementById('borrow-slider');
+const borrowVal = document.getElementById('borrow-val');
+const repaySlider = document.getElementById('repay-slider');
+const repayVal = document.getElementById('repay-val');
+
+const confirmBorrowBtn = document.getElementById('confirm-borrow-btn');
+const confirmRepayBtn = document.getElementById('confirm-repay-btn');
+
+// Функція оновлення всіх цифр на екранах
+function updateUI() {
+    const currentBalance = wallet.getBalance();
+    const currentCredit = wallet.getCredit();
+    const name = wallet.getUsername();
+
+    // Головний Хаб
+    document.getElementById('welcome-text').innerText = `Вітаємо, ${name}! Оберіть гру для початку сесії`;
+    document.getElementById('hub-balance').innerText = currentBalance;
+    document.getElementById('hub-credit').innerText = currentCredit;
+
+    // Кредитний відділ (Банк)
+    document.getElementById('bank-current-balance').innerText = currentBalance;
+    document.getElementById('bank-current-credit').innerText = currentCredit;
+
+    // Динамічне налаштування повзунка погашення боргу
+    repaySlider.max = currentCredit;
+    if (parseInt(repaySlider.value) > currentCredit) {
+        repaySlider.value = currentCredit;
+    }
+    repayVal.innerText = `${repaySlider.value}$`;
+}
+
+// 1. ЛОГІКА АВТОРИЗАЦІЇ / РЕЄСТРАЦІЇ
+loginBtn.addEventListener('click', () => {
+    let name = usernameInput.value.trim();
+    if (name === "") {
+        alert("Будь ласка, введіть свій нікнейм!");
+        return;
+    }
+    wallet.setUsername(name);
+    
+    // Перемикаємо екран на хаб
+    authScreen.classList.remove('active');
+    hubScreen.classList.add('active');
+    updateUI();
+});
+
+// Автоматичний вхід, якщо нік уже збережено раніше
+window.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('cc_username') && localStorage.getItem('cc_username') !== 'Гість') {
+        usernameInput.value = wallet.getUsername();
+    }
+});
+
+// 2. НАВІГАЦІЯ МІЖ ЕКРАНАМИ
+openBankBtn.addEventListener('click', () => {
+    hubScreen.classList.remove('active');
+    bankScreen.classList.add('active');
+    // Скидаємо повзунок взяття кредиту на 0 при вході в банк
+    borrowSlider.value = 0;
+    borrowVal.innerText = "0$";
+    updateUI();
+});
+
+backToHubBtn.addEventListener('click', () => {
+    bankScreen.classList.remove('active');
+    hubScreen.classList.add('active');
+    updateUI();
+});
+
+// 3. РОБОТА З ПОВЗУНКАМИ (Відображення значень в реальному часі)
+borrowSlider.addEventListener('input', () => {
+    borrowVal.innerText = `${borrowSlider.value}$`;
+});
+
+repaySlider.addEventListener('input', () => {
+    repayVal.innerText = `${repaySlider.value}$`;
+});
+
+// 4. ФІНАНСОВІ ОПЕРАЦІЇ (Кредити)
+confirmBorrowBtn.addEventListener('click', () => {
+    let amount = parseInt(borrowSlider.value);
+    if (amount <= 0) {
+        alert("Оберіть суму на повзунку більше нуля!");
+        return;
+    }
+    
+    wallet.updateBalance(amount);
+    wallet.updateCredit(amount);
+    alert(`Ви успішно взяли кредит на суму ${amount}$`);
+    
+    borrowSlider.value = 0;
+    borrowVal.innerText = "0$";
+    updateUI();
+});
+
+confirmRepayBtn.addEventListener('click', () => {
+    let amount = parseInt(repaySlider.value);
+    if (amount <= 0) {
+        alert("Оберіть суму для погашення!");
+        return;
+    }
+    
+    if (wallet.getBalance() < amount) {
+        alert("У вас недостатньо коштів у касі для погашення цієї суми кредиту!");
+        return;
+    }
+
+    wallet.updateBalance(-amount);
+    wallet.updateCredit(-amount);
+    alert(`Ви успішно погасили частину кредиту на суму ${amount}$`);
+    
+    updateUI();
+});
+    </script>
+</body>
+</html>

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberChips Poker Room</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Стилі сукна та елементів покерного столу */
+        .poker-body {
+            background-color: #0b111e;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        /* Верхня панель */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .status-badge {
+            background: #131c2e;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            border: 1px solid #ff9f00;
+            color: #ff9f00;
+        }
+
+        /* ПОКЕРНИЙ СТІЛ */
+        .table-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .poker-table {
+            width: 80%;
+            height: 320px;
+            background: radial-gradient(circle, #145233 0%, #0b301d 100%);
+            border: 15px solid #4a2e1b; /* Дерев'яний борт */
+            border-radius: 160px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6), inset 0 0 30px rgba(0,0,0,0.8);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Спільнота карт у центрі (Flop, Turn, River в ОДИН ряд) */
+        .center-pot-area {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            z-index: 5;
+        }
+
+        .main-pot {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 6px 16px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 16px;
+            color: #fff;
+            border: 1px dashed rgba(255,255,255,0.2);
+        }
+
+        .community-cards {
+            display: flex;
+            gap: 10px;
+        }
+
+        .card-slot {
+            width: 55px;
+            height: 80px;
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        /* СТИЛІ ДЛЯ РЕАЛЬНИХ КАРТ */
+        .card-item {
+            width: 55px;
+            height: 80px;
+            background: #fff;
+            border-radius: 6px;
+            color: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .card-item.red { color: #e74c3c; }
+
+        /* МІСЦЯ ДЛЯ ГРАВЦІВ ТА БОТІВ навколо столу */
+        .player-seat {
+            position: absolute;
+            background: #131c2e;
+            border: 1px solid #1f314f;
+            border-radius: 10px;
+            padding: 10px;
+            width: 140px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            transition: border-color 0.3s;
+        }
+        .player-seat.active-turn {
+            border-color: #ff9f00;
+            box-shadow: 0 0 15px rgba(255, 159, 0, 0.4);
+        }
+
+        /* Позиціонування 3 ботів та тебе */
+        .seat-bot1 { left: -40px; top: 35%; }       /* Бот 1 (Ліворуч) */
+        .seat-bot2 { left: 40%; top: -65px; }      /* Бот 2 (Зверху) */
+        .seat-bot3 { right: -40px; top: 35%; }     /* Бот 3 (Праворуч) */
+        .seat-hero { bottom: -50px; left: 40%; }    /* ТИ (Знизу) */
+
+        .seat-name { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+        .seat-chips { font-size: 13px; color: #ff9f00; font-weight: bold; }
+
+        /* ВІЗУАЛЬНІ ФІШКИ СТАВОК НА СТОЛІ */
+        .bet-chip-zone {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            opacity: 0; /* З'являються тільки коли є ставка */
+            transition: all 0.4s ease;
+        }
+        .chip-icon {
+            width: 16px;
+            height: 16px;
+            background: radial-gradient(circle, #e74c3c 40%, #fff 41%, #e74c3c 60%);
+            border-radius: 50%;
+            border: 1px dashed #fff;
+            display: inline-block;
+        }
+
+        /* Позиції фішок біля кожного гравця */
+        .chip-bot1 { left: 120px; top: 45%; }
+        .chip-bot2 { left: 47%; top: 75px; }
+        .chip-bot3 { right: 120px; top: 45%; }
+        .chip-hero { bottom: 75px; left: 47%; }
+
+        /* КАРТИ НА РУКАХ ГРАВЦІВ */
+        .hand-cards {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 5px;
+        }
+        .card-back {
+            width: 30px;
+            height: 45px;
+            background: linear-gradient(135deg, #ff9f00 25%, #e67e00 100%);
+            border: 1px solid #fff;
+            border-radius: 4px;
+        }
+
+        /* НИЖНЯ ПАНЕЛЬ КЕРУВАННЯ */
+        .bottom-panel {
+            display: flex;
+            gap: 20px;
+            height: 150px;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .chat-area {
+            flex: 1;
+            background: #090f1a;
+            border: 1px solid #1f314f;
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-logs {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 13px;
+            color: #8fa0bc;
+            text-align: left;
+            line-height: 1.6;
+        }
+
+        .controls-area {
+            flex: 2;
+            background: #131c2e;
+            border: 1px solid #1f314f;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .bet-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .bet-box {
+            background: #090f1a;
+            border: 1px solid #1f314f;
+            padding: 6px 12px;
+            border-radius: 6px;
+            min-width: 60px;
+            text-align: center;
+            color: #ff9f00;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .act-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            color: #fff;
+            cursor: pointer;
+            background: #2a3b5c;
+            transition: opacity 0.2s;
+        }
+        .act-btn:hover { opacity: 0.9; }
+        .btn-fold { background: #3d2424; color: #e74c3c; }
+        .btn-call { background: #1a3d2b; color: #2ecc71; }
+        .btn-raise { background: #ff9f00; color: #000; }
+    </style>
+</head>
+<body class="poker-body">
+
+    <div class="top-bar">
+        <h2>🃏 CyberChips Poker</h2>
+        <div id="game-status" class="status-badge">Очікування ставок...</div>
+        <button onclick="location.href='index.html'" class="bank-btn">← В ХАБ</button>
+    </div>
+
+    <div class="table-container">
+        <div class="poker-table">
+            
+            <div class="center-pot-area">
+                <div class="main-pot">БАНК: <span id="total-pot">0</span>$</div>
+                <div class="community-cards">
+                    <div class="card-slot" id="flop1"></div>
+                    <div class="card-slot" id="flop2"></div>
+                    <div class="card-slot" id="flop3"></div>
+                    <div class="card-slot" id="turn"></div>
+                    <div class="card-slot" id="river"></div>
+                </div>
+            </div>
+
+            <div class="player-seat seat-bot1" id="seat-bot1">
+                <div class="seat-name">👶 Бот Малюк</div>
+                <div class="seat-chips" id="chips-bot1">1000$</div>
+                <div class="hand-cards"><div class="card-back"></div><div class="card-back"></div></div>
+            </div>
+            <div class="player-seat seat-bot2" id="seat-bot2">
+                <div class="seat-name">🤖 Бот Кібер</div>
+                <div class="seat-chips" id="chips-bot2">1000$</div>
+                <div class="hand-cards"><div class="card-back"></div><div class="card-back"></div></div>
+            </div>
+            <div class="player-seat seat-bot3" id="seat-bot3">
+                <div class="seat-name">🧠 Бот Профі</div>
+                <div class="seat-chips" id="chips-bot3">1000$</div>
+                <div class="hand-cards"><div class="card-back"></div><div class="card-back"></div></div>
+            </div>
+            <div class="player-seat seat-hero" id="seat-hero">
+                <div class="seat-name" id="hero-name">Шериф</div>
+                <div class="seat-chips" id="chips-hero">1000$</div>
+                <div class="hand-cards" id="hero-hand">
+                    </div>
+            </div>
+
+            <div class="bet-chip-zone chip-bot1" id="chip-zone-bot1"><div class="chip-icon"></div> <span id="chip-val-bot1">0</span>$</div>
+            <div class="bet-chip-zone chip-bot2" id="chip-zone-bot2"><div class="chip-icon"></div> <span id="chip-val-bot2">0</span>$</div>
+            <div class="bet-chip-zone chip-bot3" id="chip-zone-bot3"><div class="chip-icon"></div> <span id="chip-val-bot3">0</span>$</div>
+            <div class="bet-chip-zone chip-hero" id="chip-zone-hero"><div class="chip-icon"></div> <span id="chip-val-hero">0</span>$</div>
+
+        </div>
+    </div>
+
+    <div class="bottom-panel">
+        <div class="chat-area">
+            <div class="chat-logs" id="chat-box">
+                <div>• Ласкаво просимо в CyberChips Poker room!</div>
+            </div>
+        </div>
+
+        <div class="controls-area">
+            <div class="bet-slider-container">
+                <span style="font-size: 13px; color: #8fa0bc;">Розмір бета:</span>
+                <input type="range" id="poker-bet-slider" min="10" max="100" value="20" class="long-slider" style="margin-bottom:0;">
+                <div class="bet-box" id="poker-bet-box">20$</div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="act-btn btn-fold" id="btn-fold">FOLD</button>
+                <button class="act-btn" id="btn-check">CHECK</button>
+                <button class="act-btn btn-call" id="btn-call">CALL</button>
+                <button class="act-btn btn-raise" id="btn-raise">RAISE</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Елементи інтерфейсу покеру
+const heroNameDisplay = document.getElementById('hero-name');
+const chipsHeroDisplay = document.getElementById('chips-hero');
+const chipsBot1Display = document.getElementById('chips-bot1');
+const chipsBot2Display = document.getElementById('chips-bot2');
+const chipsBot3Display = document.getElementById('chips-bot3');
+const totalPotDisplay = document.getElementById('total-pot');
+const chatBox = document.getElementById('chat-box');
+const gameStatus = document.getElementById('game-status');
+
+const pokerBetSlider = document.getElementById('poker-bet-slider');
+const pokerBetBox = document.getElementById('poker-bet-box');
+
+// Кнопки дій
+const btnFold = document.getElementById('btn-fold');
+const btnCheck = document.getElementById('btn-check');
+const btnCall = document.getElementById('btn-call');
+const btnRaise = document.getElementById('btn-raise');
+
+// Ігрові змінні
+let deck = [];
+let suits = ['♠', '♥', '♦', '♣'];
+let values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+let gameState = {
+    pot: 0,
+    currentBet: 0,
+    stage: 'preflop', // preflop, flop, turn, river, showdown
+    playerChips: 0,
+    bot1Chips: 1000,
+    bot2Chips: 1000,
+    bot3Chips: 1000,
+    playerCurrentBet: 0,
+    bot1CurrentBet: 0,
+    bot2CurrentBet: 0,
+    bot3CurrentBet: 0,
+    playerFolded: false,
+    bot1Folded: false,
+    bot2Folded: false,
+    bot3Folded: false
+};
+
+// Репліки для ботів
+const botPhrases = {
+    fold: ["Я пас.", "Погана рука, я виходжу.", "Не цього разу..."],
+    call: ["Підтримую.", "Граю.", "Колл."],
+    raise: ["Піднімаю!", "Давайте піднімемо ставки!", "All-in? Жарт, просто Рейз."]
+};
+
+// Створення та тасування колоди
+function createDeck() {
+    deck = [];
+    for (let suit of suits) {
+        for (let val of values) {
+            deck.push({ value: val, suit: suit });
+        }
+    }
+    // Тасування Фішера-Йетса
+    for (let i = deck.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+}
+
+// Рендеринг карти в HTML
+function renderCardHTML(card) {
+    let isRed = card.suit === '♥' || card.suit === '♦';
+    return `<div class="card-item ${isRed ? 'red' : ''}">
+                <div>${card.value}</div>
+                <div style="align-self: flex-end;">${card.suit}</div>
+            </div>`;
+}
+
+// Логування в наш чат
+function addLog(message, color = "#8fa0bc") {
+    const logItem = document.createElement('div');
+    logItem.style.color = color;
+    logItem.innerHTML = message;
+    chatBox.appendChild(logItem);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// Оновлення візуальних фішок на столі
+function updateChipsAndBets() {
+    heroNameDisplay.innerText = wallet.getUsername();
+    chipsHeroDisplay.innerText = gameState.playerChips + "$";
+    chipsBot1Display.innerText = gameState.bot1Chips + "$";
+    chipsBot2Display.innerText = gameState.bot2Chips + "$";
+    chipsBot3Display.innerText = gameState.bot3Chips + "$";
+    totalPotDisplay.innerText = gameState.pot;
+
+    // Оновлюємо зони фішок на сукні
+    toggleChipZone('hero', gameState.playerCurrentBet);
+    toggleChipZone('bot1', gameState.bot1CurrentBet);
+    toggleChipZone('bot2', gameState.bot2CurrentBet);
+    toggleChipZone('bot3', gameState.bot3CurrentBet);
+
+    // Налаштування максу для повзунка ставок
+    pokerBetSlider.max = gameState.playerChips;
+}
+
+function toggleChipZone(player, betAmount) {
+    const zone = document.getElementById(`chip-zone-${player}`);
+    const val = document.getElementById(`chip-val-${player}`);
+    if (betAmount > 0) {
+        val.innerText = betAmount;
+        zone.style.opacity = "1";
+    } else {
+        zone.style.opacity = "0";
+    }
+}
+
+// Ініціалізація та старт нової роздачі
+function startNewHand() {
+    gameState.playerChips = wallet.getBalance();
+    if (gameState.playerChips <= 0) {
+        alert("У вас 0$! Поверніться в Хаб та візьміть кредит.");
+        location.href = 'index.html';
+        return;
+    }
+
+    createDeck();
+    
+    // Скидання раунду
+    gameState.pot = 0;
+    gameState.currentBet = 20; // Стартовий блайнд
+    gameState.stage = 'preflop';
+    gameState.playerFolded = false;
+    gameState.bot1Folded = false;
+    gameState.bot2Folded = false;
+    gameState.bot3Folded = false;
+
+    // Знімаємо початкові блайнди для створення екшену
+    makeBet('hero', 10);
+    makeBet('bot1', 20);
+    makeBet('bot2', 0);
+    makeBet('bot3', 0);
+
+    // Очищаємо стіл
+    document.getElementById('flop1').innerHTML = '';
+    document.getElementById('flop2').innerHTML = '';
+    document.getElementById('flop3').innerHTML = '';
+    document.getElementById('turn').innerHTML = '';
+    document.getElementById('river').innerHTML = '';
+
+    // Роздача карт Hero
+    let card1 = deck.pop();
+    let card2 = deck.pop();
+    document.getElementById('hero-hand').innerHTML = renderCardHTML(card1) + renderCardHTML(card2);
+
+    addLog("--- РОЗДАЧА ПОЧАЛАСЬ ---", "#ff9f00");
+    gameStatus.innerText = "Ваш хід (Префлоп)";
+    updateChipsAndBets();
+}
+
+function makeBet(player, amount) {
+    if (amount === 0) return;
+    if (player === 'hero') {
+        gameState.playerChips -= amount;
+        gameState.playerCurrentBet += amount;
+        wallet.updateBalance(-amount);
+    } else {
+        gameState[`${player}Chips`] -= amount;
+        gameState[`${player}CurrentBet`] += amount;
+    }
+    gameState.pot += amount;
+}
+
+// Проста ШІ логіка для 3 ботів
+function runBotTurns() {
+    let players = ['bot1', 'bot2', 'bot3'];
+    
+    players.forEach((bot, index) => {
+        if (gameState[`${bot}Folded`]) return;
+
+        // Імітація мислення бота залежно від його "імені" (характеру)
+        let randomDecision = Math.random();
+        let phrase = "";
+
+        if (randomDecision < 0.15) {
+            // Пас
+            gameState[`${bot}Folded`] = true;
+            phrase = botPhrases.fold[Math.floor(Math.random() * botPhrases.fold.length)];
+            addLog(`• Бот ${index + 1}: ${phrase}`, "#e74c3c");
+            document.getElementById(`seat-${bot}`).style.opacity = "0.5";
+        } else if (randomDecision < 0.75) {
+            // Колл або Чек
+            let callAmount = gameState.currentBet - gameState[`${bot}CurrentBet`];
+            if (callAmount > 0) {
+                makeBet(bot, callAmount);
+                phrase = botPhrases.call[Math.floor(Math.random() * botPhrases.call.length)];
+                addLog(`• Бот ${index + 1}: ${phrase} (+${callAmount}$)`);
+            } else {
+                addLog(`• Бот ${index + 1}: Чек.`);
+            }
+        } else {
+            // Рейз
+            let raiseAmount = 40;
+            gameState.currentBet += raiseAmount;
+            makeBet(bot, (gameState.currentBet - gameState[`${bot}CurrentBet`]));
+            phrase = botPhrases.raise[Math.floor(Math.random() * botPhrases.raise.length)];
+            addLog(`• Бот ${index + 1}: ${phrase} (Ставка: ${gameState.currentBet}$)`, "#ff9f00");
+        }
+    });
+
+    updateChipsAndBets();
+    advanceStage();
+}
+
+// Перехід по стадіях (Flop, Turn, River)
+function advanceStage() {
+    // Збираємо фішки в загальний банк перед наступною стадією
+    gameState.playerCurrentBet = 0;
+    gameState.bot1CurrentBet = 0;
+    gameState.bot2CurrentBet = 0;
+    gameState.bot3CurrentBet = 0;
+
+    setTimeout(() => {
+        if (gameState.stage === 'preflop') {
+            gameState.stage = 'flop';
+            gameStatus.innerText = "Ваш хід (Флоп)";
+            deck.pop(); // Спалюємо карту за правилами покеру
+            document.getElementById('flop1').innerHTML = renderCardHTML(deck.pop());
+            document.getElementById('flop2').innerHTML = renderCardHTML(deck.pop());
+            document.getElementById('flop3').innerHTML = renderCardHTML(deck.pop());
+            addLog("• Дилер роздає ФЛОП");
+        } else if (gameState.stage === 'flop') {
+            gameState.stage = 'turn';
+            gameStatus.innerText = "Ваш хід (Терн)";
+            deck.pop();
+            document.getElementById('turn').innerHTML = renderCardHTML(deck.pop());
+            addLog("• Дилер роздає ТЕРН");
+        } else if (gameState.stage === 'turn') {
+            gameState.stage = 'river';
+            gameStatus.innerText = "Ваш хід (Рівер)";
+            deck.pop();
+            document.getElementById('river').innerHTML = renderCardHTML(deck.pop());
+            addLog("• Дилер роздає РІВЕР");
+        } else if (gameState.stage === 'river') {
+            gameState.stage = 'showdown';
+            resolveShowdown();
+        }
+        updateChipsAndBets();
+    }, 800);
+}
+
+// Визначення переможця на Шоудауні (спрощена логіка)
+function resolveShowdown() {
+    gameStatus.innerText = "Шоудаун! Визначення переможця";
+    
+    // Оскільки ми граємо в легкий симулятор, якщо гравець дійшов до кінця і не скинув — 
+    // дамо йому високий шанс на перемогу або випадковий розподіл
+    if (!gameState.playerFolded) {
+        let winChance = Math.random();
+        if (winChance > 0.4) {
+            wallet.updateBalance(gameState.pot);
+            addLog(`🎉 Ви виграли банк розміром ${gameState.pot}$! Вітаємо!`, "#2ecc71");
+        } else {
+            addLog(`😔 Бот Кібер забрав банк розміром ${gameState.pot}$ з комбінацією Стріт.`, "#e74c3c");
+        }
+    } else {
+        addLog(`• Банк розміром ${gameState.pot}$ забирає Бот Профі, оскільки ви скинули карти.`);
+    }
+
+    // Повертаємо непрозорість ботам для нової гри
+    document.getElementById('seat-bot1').style.opacity = "1";
+    document.getElementById('seat-bot2').style.opacity = "1";
+    document.getElementById('seat-bot3').style.opacity = "1";
+
+    setTimeout(() => {
+        startNewHand();
+    }, 4000);
+}
+
+// СЛУХАЧІ КНОПОК ДІЙ ГРАВЦЯ
+pokerBetSlider.addEventListener('input', () => {
+    pokerBetBox.innerText = pokerBetSlider.value + "$";
+});
+
+btnCheck.addEventListener('click', () => {
+    addLog("• Ви: Чек.");
+    runBotTurns();
+});
+
+btnCall.addEventListener('click', () => {
+    let toCall = gameState.currentBet - gameState.playerCurrentBet;
+    if (toCall <= 0) {
+        addLog("• Ви: Чек (нічого колювати).");
+    } else {
+        makeBet('hero', toCall);
+        addLog(`• Ви: Колл (+${toCall}$)`);
+    }
+    runBotTurns();
+});
+
+btnRaise.addEventListener('click', () => {
+    let raiseVal = parseInt(pokerBetSlider.value);
+    if (raiseVal <= gameState.currentBet) {
+        alert("Сума рейзу має бути більшою за поточну ставку!");
+        return;
+    }
+    let additionalBet = raiseVal - gameState.playerCurrentBet;
+    gameState.currentBet = raiseVal;
+    makeBet('hero', additionalBet);
+    addLog(`• Ви: Рейз до ${raiseVal}$!`, "#ff9f00");
+    runBotTurns();
+});
+
+btnFold.addEventListener('click', () => {
+    gameState.playerFolded = true;
+    addLog("• Ви: Скинули карти (Пас).", "#e74c3c");
+    resolveShowdown();
+});
+
+// Завантаження сторінки
+window.addEventListener('DOMContentLoaded', startNewHand);
+    </script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyber Roulette</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .roulette-body {
+            background-color: #0b111e;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        /* Головна зона: колесо + ставки */
+        .roulette-container {
+            display: flex;
+            flex: 1;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Ліва інформаційна панель */
+        .side-panel {
+            width: 280px;
+            background: #131c2e;
+            border: 1px solid #1f314f;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 450px;
+        }
+
+        .stats-box {
+            background: #090f1a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #1f314f;
+            font-size: 14px;
+        }
+        .stats-box p { margin-bottom: 8px; }
+        .stats-box p:last-child { margin-bottom: 0; }
+
+        .history-box {
+            flex: 1;
+            background: #090f1a;
+            border: 1px solid #1f314f;
+            border-radius: 8px;
+            padding: 12px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 13px;
+        }
+        .history-title {
+            font-size: 11px;
+            color: #8fa0bc;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        /* КОЛЕСО РУЛЕТКИ */
+        .wheel-area {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .roulette-wheel {
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            border: 12px solid #4a2e1b; /* Дерев'яний борт */
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            background: repeating-conic-gradient(
+                #e74c3c 0deg 9.7deg,  /* Червоний */
+                #2c3e50 9.7deg 19.4deg /* Чорний */
+            );
+            transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1);
+            position: relative;
+        }
+
+        /* Маркер випавшого числа (стрілочка зверху) */
+        .wheel-pointer {
+            position: absolute;
+            top: -20px;
+            z-index: 10;
+            width: 0; 
+            height: 0; 
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid #ff9f00;
+        }
+
+        .wheel-center {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, #2c3e50 0%, #1a252f 100%);
+            border-radius: 50%;
+            border: 4px solid #ff9f00;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 20px;
+            color: #fff;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* ПАНЕЛЬ СТАВОК */
+        .betting-table {
+            background: #131c2e;
+            border: 1px solid #1f314f;
+            border-radius: 12px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 450px;
+        }
+
+        .bet-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .bet-option-btn {
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            color: #fff;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .bet-option-btn:hover { opacity: 0.9; transform: scale(1.02); }
+        .btn-red { background: #e74c3c; box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3); }
+        .btn-black { background: #2c3e50; border: 1px solid rgba(255,255,255,0.1); }
+        .btn-even { background: #2980b9; }
+        .btn-odd { background: #8e44ad; }
+
+        .number-bet-box {
+            background: #090f1a;
+            border: 1px solid #1f314f;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: left;
+        }
+        .number-bet-box label {
+            display: block;
+            font-size: 12px;
+            color: #8fa0bc;
+            margin-bottom: 8px;
+        }
+        .number-input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .num-input {
+            width: 80px;
+            background: #131c2e;
+            border: 1px solid #1f314f;
+            border-radius: 6px;
+            padding: 8px;
+            color: #fff;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="roulette-body">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <h2>🎰 Cyber Roulette</h2>
+        <button onclick="location.href='index.html'" class="bank-btn">← В ХАБ</button>
+    </div>
+
+    <div class="roulette-container">
+        
+        <div class="side-panel">
+            <div class="stats-box">
+                <p>Гравець: <strong id="roulette-name">Гість</strong></p>
+                <p>Каса: <strong id="roulette-balance" style="color:#ff9f00;">1000$</strong></p>
+                <p>Кредит: <strong id="roulette-credit" class="text-danger">0$</strong></p>
+            </div>
+            <div class="history-box">
+                <div class="history-title">Історія випадінь</div>
+                <div id="history-logs">
+                    <div style="color: #8fa0bc;">• Колесо чекає на запуск...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="wheel-area">
+            <div class="wheel-pointer"></div>
+            <div class="roulette-wheel" id="wheel"></div>
+            <div class="wheel-center" id="wheel-center-val">--</div>
+        </div>
+
+        <div class="betting-table">
+            <div class="bet-slider-container" style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-size: 13px; color: #8fa0bc; min-width: 80px;">Сума ставки:</span>
+                <input type="range" id="roulette-bet-slider" min="10" max="200" value="50" class="long-slider" style="margin-bottom:0;">
+                <div class="bet-box" id="roulette-bet-box" style="background: #090f1a; border:1px solid #1f314f; padding:6px 12px; border-radius:6px; color:#ff9f00; font-weight:bold;">50$</div>
+            </div>
+
+            <hr style="margin-bottom: 5px;">
+
+            <div class="bet-grid">
+                <button class="bet-option-btn btn-red" id="bet-red">Червоне (x2)</button>
+                <button class="bet-option-btn btn-black" id="bet-black">Чорне (x2)</button>
+                <button class="bet-option-btn btn-even" id="bet-even">Парне (x2)</button>
+                <button class="bet-option-btn btn-odd" id="bet-odd">Непарне (x2)</button>
+            </div>
+
+            <div class="number-bet-box">
+                <label>СТАВКА НА КОНКРЕТНЕ ЧИСЛО (Коефіцієнт x36)</label>
+                <div class="number-input-group">
+                    <input type="text" id="specific-number" class="num-input" placeholder="00-36" maxlength="2">
+                    <button class="main-btn" id="bet-number" style="padding: 10px;">Зробити ставку на число</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Зчитуємо елементи інтерфейсу рулетки
+const nameDisplay = document.getElementById('roulette-name');
+const balanceDisplay = document.getElementById('roulette-balance');
+const creditDisplay = document.getElementById('roulette-credit');
+const historyLogs = document.getElementById('history-logs');
+const wheel = document.getElementById('wheel');
+const wheelCenterVal = document.getElementById('wheel-center-val');
+
+const betSlider = document.getElementById('roulette-bet-slider');
+const betBox = document.getElementById('roulette-bet-box');
+
+// Послідовність чисел на класичному американському колесі (38 секторів)
+const americanWheelNumbers = [
+    "0", "28", "9", "26", "30", "11", "7", "20", "32", "17", "5", "22", "34", "15", "3", "24", "36", "13", "1", "00", 
+    "27", "10", "25", "29", "12", "8", "19", "31", "18", "6", "21", "33", "16", "4", "23", "35", "14", "2"
+];
+
+// Масив червоних чисел
+const redNumbers = ["1", "3", "5", "7", "9", "12", "14", "16", "18", "19", "21", "23", "25", "27", "30", "32", "34", "36"];
+
+let isSpinning = false;
+let currentRotation = 0;
+
+// Оновлення значень гаманця при завантаженні сторінки
+function updateRouletteUI() {
+    nameDisplay.innerText = wallet.getUsername();
+    balanceDisplay.innerText = wallet.getBalance() + "$";
+    creditDisplay.innerText = wallet.getCredit() + "$";
+}
+
+// Оновлення повзунка ставки в реальному часі
+betSlider.addEventListener('input', () => {
+    betBox.innerText = betSlider.value + "$";
+});
+
+// Додавання подій на кнопки швидких ставок
+document.getElementById('bet-red').addEventListener('click', () => handleBet('red'));
+document.getElementById('bet-black').addEventListener('click', () => handleBet('black'));
+document.getElementById('bet-even').addEventListener('click', () => handleBet('even'));
+document.getElementById('bet-odd').addEventListener('click', () => handleBet('odd'));
+
+// Ставка на точне число
+document.getElementById('bet-number').addEventListener('click', () => {
+    const numInput = document.getElementById('specific-number').value.trim();
+    if (numInput === "") {
+        alert("Введіть число від 0 до 36 або 00!");
+        return;
+    }
+    if (!americanWheelNumbers.includes(numInput)) {
+        alert("Неіснуючий сектор! Можна ставити на 0, 00 або числа від 1 до 36.");
+        return;
+    }
+    handleBet('number', numInput);
+});
+
+// Функція обробки ставки та запуску колеса
+function handleBet(betType, specificNum = null) {
+    if (isSpinning) return;
+
+    const betAmount = parseInt(betSlider.value);
+    const currentBalance = wallet.getBalance();
+
+    if (currentBalance < betAmount) {
+        alert("У вас недостатньо грошей у касі для цієї ставки! Візьміть кредит у Хабі.");
+        return;
+    }
+
+    // Знімаємо гроші за ставку
+    wallet.updateBalance(-betAmount);
+    updateRouletteUI();
+    isSpinning = true;
+    wheelCenterVal.innerText = "⏳";
+
+    // Визначаємо випадковий переможний сектор
+    const randomIndex = Math.floor(Math.random() * americanWheelNumbers.length);
+    const winningNumber = americanWheelNumbers[randomIndex];
+
+    // Розрахунок кута обертання колеса
+    const sectorDegrees = 360 / 38; // ~9.47 градусів на один сектор
+    const targetSectorAngle = randomIndex * sectorDegrees;
+    
+    // Робимо мінімум 5 повних обертів (1800 градусів) плюс кут сектору
+    // Мінус ставимо, щоб колесо крутилося за годинниковою стрілкою
+    const extraSpins = 1800 + (360 - targetSectorAngle);
+    currentRotation += extraSpins;
+
+    wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+    // Чекаємо завершення анімації (4 секунди, як у CSS)
+    setTimeout(() => {
+        isSpinning = false;
+        wheelCenterVal.innerText = winningNumber;
+
+        // Визначаємо колір випавшого числа
+        let numberColor = "Чорне";
+        if (winningNumber === "0" || winningNumber === "00") {
+            numberColor = "Зелене";
+        } else if (redNumbers.includes(winningNumber)) {
+            numberColor = "Червоне";
+        }
+
+        // Перевіряємо, чи виграв гравець
+        let isWin = false;
+        let payoutFactor = 0;
+
+        if (betType === 'red' && numberColor === 'Червоне') { isWin = true; payoutFactor = 2; }
+        else if (betType === 'black' && numberColor === 'Чорне') { isWin = true; payoutFactor = 2; }
+        else if (betType === 'even' && winningNumber !== "0" && winningNumber !== "00" && parseInt(winningNumber) % 2 === 0) { isWin = true; payoutFactor = 2; }
+        else if (betType === 'odd' && winningNumber !== "0" && winningNumber !== "00" && parseInt(winningNumber) % 2 !== 0) { isWin = true; payoutFactor = 2; }
+        else if (betType === 'number' && winningNumber === specificNum) { isWin = true; payoutFactor = 36; }
+
+        let logText = "";
+        if (isWin) {
+            const winAmount = betAmount * payoutFactor;
+            wallet.updateBalance(winAmount);
+            logText = `<div style="color: #2ecc71; margin-bottom: 5px;">• Випало: <strong>${winningNumber} (${numberColor})</strong>. Ви ВИГРАЛИ ${winAmount}$!</div>`;
+        } else {
+            logText = `<div style="color: #e74c3c; margin-bottom: 5px;">• Випало: <strong>${winningNumber} (${numberColor})</strong>. Ви програли ${betAmount}$.</div>`;
+        }
+
+        // Додаємо запис в історію випадінь
+        historyLogs.innerHTML = logText + historyLogs.innerHTML;
+        
+        // Очищаємо інпут точного числа
+        document.getElementById('specific-number').value = "";
+        
+        // Оновлюємо касу на екрані
+        updateRouletteUI();
+
+    }, 4000);
+}
+
+// Запускаємо ініціалізацію при завантаженні сторінки
+window.addEventListener('DOMContentLoaded', updateRouletteUI);
+    </script>
+</body>
+</html>
