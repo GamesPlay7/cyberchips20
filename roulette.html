@@ -15,6 +15,8 @@
             justify-content: space-between;
             padding: 20px;
             box-sizing: border-box;
+            font-family: sans-serif;
+            color: #fff;
         }
 
         /* Головна зона: колесо + ставки */
@@ -71,7 +73,7 @@
             letter-spacing: 0.5px;
         }
 
-        /* КОЛЕСО РУЛЕТКИ */
+        /* КОЛЕСО РУЛЕТКИ (ГЕНЕРУЄТЬСЯ КОДОМ) */
         .wheel-area {
             position: relative;
             display: flex;
@@ -83,17 +85,51 @@
             width: 340px;
             height: 340px;
             border-radius: 50%;
-            border: 10px solid #4a2e1b; /* Дерев'яний борт казино */
+            border: 12px solid #4a2e1b; /* Дерев'яний борт казино */
+            background: #090f1a;
             box-shadow: 0 15px 35px rgba(0,0,0,0.6);
             transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1);
             position: relative;
-            object-fit: cover;
+            overflow: hidden; /* Щоб зрізати сектори по колу */
         }
+
+        /* Динамічний сектор (промінь з центру) */
+        .wheel-sector {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 30px;
+            height: 50%;
+            margin-left: -15px;
+            transform-origin: bottom center;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding-top: 12px;
+            box-sizing: border-box;
+            /* Створюємо трикутну форму сектора рулетки */
+            clip-path: polygon(0 0, 100% 0, 56% 100%, 44% 100%);
+        }
+
+        /* Стилі для цифри всередині сектора */
+        .sector-number {
+            font-size: 12px;
+            font-weight: 900;
+            color: #ffffff;
+            transform: rotate(0deg); /* Цифри дивляться до центру */
+        }
+
+        /* Кольори фону для секторів */
+        .bg-red { background-color: #dc2626; }
+        .bg-black { background-color: #1a1a1a; }
+        .bg-green { background-color: #16a34a; }
 
         /* Маркер випавшого числа (стрілочка зверху) */
         .wheel-pointer {
             position: absolute;
-            top: -18px;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 10;
             width: 0; 
             height: 0; 
@@ -104,8 +140,8 @@
 
         .wheel-center {
             position: absolute;
-            width: 70px;
-            height: 70px;
+            width: 75px;
+            height: 75px;
             background: radial-gradient(circle, #2c3e50 0%, #1a252f 100%);
             border-radius: 50%;
             border: 3px solid #ff9f00;
@@ -182,6 +218,25 @@
             font-size: 16px;
             font-weight: bold;
         }
+        .main-btn {
+            flex: 1;
+            background: #ff9f00;
+            border: none;
+            border-radius: 6px;
+            color: #0b111e;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .main-btn:hover { background: #e08b00; }
+        .bank-btn {
+            background: #131c2e;
+            border: 1px solid #1f314f;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="roulette-body">
@@ -197,7 +252,7 @@
             <div class="stats-box">
                 <p>Гравець: <strong id="roulette-name">Гість</strong></p>
                 <p>Каса: <strong id="roulette-balance" style="color:#ff9f00;">1000$</strong></p>
-                <p>Кредит: <strong id="roulette-credit" class="text-danger">0$</strong></p>
+                <p>Кредит: <strong id="roulette-credit" style="color: #e74c3c;">0$</strong></p>
             </div>
             <div class="history-box">
                 <div class="history-title">Історія випадінь</div>
@@ -209,7 +264,7 @@
 
         <div class="wheel-area">
             <div class="wheel-pointer"></div>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/da/Roulette_wheel_numbered.svg/640px-Roulette_wheel_numbered.svg.png" class="roulette-wheel" id="wheel" alt="Roulette Wheel">
+            <div class="roulette-wheel" id="wheel"></div>
             <div class="wheel-center" id="wheel-center-val">--</div>
         </div>
 
@@ -220,7 +275,7 @@
                 <div class="bet-box" id="roulette-bet-box" style="background: #090f1a; border:1px solid #1f314f; padding:6px 12px; border-radius:6px; color:#ff9f00; font-weight:bold;">50$</div>
             </div>
 
-            <hr style="margin-bottom: 5px;">
+            <hr style="border: 0; border-top: 1px solid #1f314f; margin-bottom: 5px;">
 
             <div class="bet-grid">
                 <button class="bet-option-btn btn-red" id="bet-red">Червоне (x2)</button>
@@ -252,22 +307,55 @@
         const betSlider = document.getElementById('roulette-bet-slider');
         const betBox = document.getElementById('roulette-bet-box');
 
-        // Оновлена послідовність чисел строго під картинку з Вікіпедії (за годинниковою стрілкою починаючи з 0)
+        // Оновлена послідовність чисел строго під картинку з Вікіпедії
         const wheelNumbers = [
             "0", "32", "15", "19", "4", "21", "2", "25", "17", "34", "6", "27", "13", "36", "11", "30", "8", "23", "10",
             "5", "24", "16", "33", "1", "20", "14", "31", "9", "22", "18", "29", "7", "28", "12", "35", "3", "26"
         ];
 
-        // Оновлений список червоних чисел під цей стандарт
         const redNumbers = ["1", "3", "5", "7", "9", "12", "14", "16", "18", "19", "21", "23", "25", "27", "30", "32", "34", "36"];
 
         let isSpinning = false;
         let currentRotation = 0;
 
+        // ФУНКЦІЯ ГЕНЕРАЦІЇ СЕКТОРІВ КОЛЕСА НА ЕКРАНІ
+        function generateWheelSectors() {
+            const totalSectors = wheelNumbers.length;
+            const sectorDegrees = 360 / totalSectors;
+
+            wheelNumbers.forEach((num, index) => {
+                const sector = document.createElement('div');
+                sector.className = 'wheel-sector';
+                
+                // Визначаємо колір фону
+                if (num === "0") {
+                    sector.classList.add('bg-green');
+                } else if (redNumbers.includes(num)) {
+                    sector.classList.add('bg-red');
+                } else {
+                    sector.classList.add('bg-black');
+                }
+
+                // Повертаємо сектор на його законний кут
+                sector.style.transform = `rotate(${index * sectorDegrees}deg)`;
+
+                // Створюємо цифру всередині
+                const numberSpan = document.createElement('span');
+                numberSpan.className = 'sector-number';
+                numberSpan.innerText = num;
+
+                sector.appendChild(numberSpan);
+                wheel.appendChild(sector);
+            });
+        }
+
         function updateRouletteUI() {
-            nameDisplay.innerText = wallet.getUsername();
-            balanceDisplay.innerText = wallet.getBalance() + "$";
-            creditDisplay.innerText = wallet.getCredit() + "$";
+            // Додано перевірку, щоб скрипт не падав, якщо об'єкт wallet ще не підключений з app.js
+            if (typeof wallet !== 'undefined') {
+                nameDisplay.innerText = wallet.getUsername();
+                balanceDisplay.innerText = wallet.getBalance() + "$";
+                creditDisplay.innerText = wallet.getCredit() + "$";
+            }
         }
 
         betSlider.addEventListener('input', () => {
@@ -296,34 +384,34 @@
             if (isSpinning) return;
 
             const betAmount = parseInt(betSlider.value);
-            const currentBalance = wallet.getBalance();
+            
+            // Захист на випадок відсутності wallet
+            const currentBalance = typeof wallet !== 'undefined' ? wallet.getBalance() : 1000;
 
             if (currentBalance < betAmount) {
                 alert("У вас недостатньо грошей у касі для цієї ставки! Візьміть кредит у Хабі.");
                 return;
             }
 
-            wallet.updateBalance(-betAmount);
+            if (typeof wallet !== 'undefined') wallet.updateBalance(-betAmount);
             updateRouletteUI();
             isSpinning = true;
             wheelCenterVal.innerText = "⏳";
 
-            // Генерація виграшного індексу
             const randomIndex = Math.floor(Math.random() * wheelNumbers.length);
             const winningNumber = wheelNumbers[randomIndex];
 
-            // Математичний розрахунок кута для картинки Вікіпедії
             const totalSectors = 37; 
-            const sectorDegrees = 360 / totalSectors; // ~9.73 градусів на сектор
+            const sectorDegrees = 360 / totalSectors; 
             
-            // Рахуємо кут так, щоб колесо крутилося проти годинникової стрілки, а стрілочка вказувала точно на сектор
+            // Розрахунок кута під стрілочку зверху (0 градусів)
             const targetAngle = randomIndex * sectorDegrees;
             
-            // Робимо 5 повних обертів + зсув на потрібний кут
+            // 5 повних обертів (1800 град) + зсув на потрібний сектор
             const spinDegrees = 1800 + targetAngle;
             currentRotation += spinDegrees;
 
-            // Запускаємо обертання через CSS
+            // Обертаємо за годинниковою стрілкою (стрілка фіксована зверху)
             wheel.style.transform = `rotate(-${currentRotation}deg)`;
 
             setTimeout(() => {
@@ -349,7 +437,7 @@
                 let logText = "";
                 if (isWin) {
                     const winAmount = betAmount * payoutFactor;
-                    wallet.updateBalance(winAmount);
+                    if (typeof wallet !== 'undefined') wallet.updateBalance(winAmount);
                     logText = `<div style="color: #2ecc71; margin-bottom: 5px;">• Випало: <strong>${winningNumber} (${numberColor})</strong>. Ви ВИГРАЛИ ${winAmount}$!</div>`;
                 } else {
                     logText = `<div style="color: #e74c3c; margin-bottom: 5px;">• Випало: <strong>${winningNumber} (${numberColor})</strong>. Ви програли ${betAmount}$.</div>`;
@@ -362,7 +450,10 @@
             }, 4000);
         }
 
-        window.addEventListener('DOMContentLoaded', updateRouletteUI);
+        window.addEventListener('DOMContentLoaded', () => {
+            generateWheelSectors(); // Генеруємо барабан відразу при завантаженні
+            updateRouletteUI();
+        });
     </script>
 </body>
 </html>
